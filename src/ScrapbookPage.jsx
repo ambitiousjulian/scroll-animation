@@ -559,29 +559,22 @@ export default function ScrapbookPage() {
           </h1>
         </div>
 
-        {/* Progress line */}
+        {/* Progress line — top of video, black */}
         <div
+          ref={videoProgressLineRef}
           style={{
             position: "absolute",
-            bottom: 0,
+            top: 0,
             left: 0,
-            right: 0,
-            height: "2px",
-            background: "rgba(255,255,255,0.15)",
+            height: "3px",
+            width: "100%",
+            background: "#000",
+            transformOrigin: "left center",
+            transform: "scaleX(0)",
+            willChange: "transform",
             pointerEvents: "none",
           }}
-        >
-          <div
-            ref={videoProgressLineRef}
-            style={{
-              height: "100%",
-              background: "rgba(255,255,255,0.85)",
-              transformOrigin: "left center",
-              transform: "scaleX(0)",
-              willChange: "transform",
-            }}
-          />
-        </div>
+        />
       </section>
 
       {/* ╔══════════════════════════════════════════════════════╗
@@ -656,35 +649,20 @@ export default function ScrapbookPage() {
         >
           {/* Eyebrow */}
           <p
+            ref={heroTitleRef}
             style={{
               fontFamily: "'DM Sans', sans-serif",
               color: P.sand,
               fontSize: "0.7rem",
               letterSpacing: "0.55em",
               textTransform: "uppercase",
-              margin: "0 0 1.75rem",
+              margin: 0,
               opacity: 0.6,
+              willChange: "transform, filter, opacity",
             }}
           >
             A family story
           </p>
-
-          {/* Main title — GSAP target */}
-          <h1
-            ref={heroTitleRef}
-            style={{
-              fontFamily: "'Cormorant Galatia', serif",
-              fontSize: "clamp(5rem, 13vw, 11rem)",
-              fontWeight: 300,
-              color: P.cream,
-              margin: 0,
-              lineHeight: 0.9,
-              letterSpacing: "-0.03em",
-              willChange: "transform, filter, opacity",
-            }}
-          >
-            Our Story
-          </h1>
 
           {/* Sub-line revealed after scroll begins */}
           <div
