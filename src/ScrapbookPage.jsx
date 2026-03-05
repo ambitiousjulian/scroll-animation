@@ -1,5 +1,20 @@
 import { useEffect, useRef } from "react"
 
+// ─── Inject CSS keyframes once ─────────────────────────────────────────────────
+const BANNER_CSS = `
+@keyframes scrapbook-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-33.3334%); }
+}
+@keyframes scrapbook-scroll-rev {
+  0%   { transform: translateX(-33.3334%); }
+  100% { transform: translateX(0); }
+}
+.sb-strip { animation: scrapbook-scroll 28s linear infinite; }
+.sb-strip-rev { animation: scrapbook-scroll-rev 34s linear infinite; }
+.sb-strip:hover, .sb-strip-rev:hover { animation-play-state: paused; }
+`
+
 // ─── Photo data ────────────────────────────────────────────────────────────────
 const PHOTOS = [
   {
@@ -72,9 +87,94 @@ function loadScript(src) {
   })
 }
 
+// ─── BannerCard — small tile used in the 3D scrolling strip ───────────────────
+function BannerCard({ photo }) {
+  const handleErr = (e) => {
+    e.currentTarget.style.display = "none"
+    const ph = e.currentTarget.parentElement?.querySelector("[data-phb]")
+    if (ph) ph.style.display = "flex"
+  }
+  return (
+    <div
+      style={{
+        flexShrink: 0,
+        width: "clamp(160px, 18vw, 240px)",
+        height: "clamp(200px, 22vw, 290px)",
+        borderRadius: "8px",
+        overflow: "hidden",
+        position: "relative",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(217,197,160,0.08)",
+      }}
+    >
+      <img
+        src={photo.src}
+        alt={photo.caption}
+        onError={handleErr}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          display: "block",
+        }}
+      />
+      {/* Placeholder */}
+      <div
+        data-phb="true"
+        style={{
+          display: "none",
+          position: "absolute",
+          inset: 0,
+          background: `linear-gradient(135deg, ${P.terracotta} 0%, ${P.espresso} 100%)`,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "'Cormorant Galatia', serif",
+            color: "rgba(245,239,230,0.3)",
+            fontSize: "0.6rem",
+            letterSpacing: "0.4em",
+            textTransform: "uppercase",
+          }}
+        >
+          {photo.idx}
+        </span>
+      </div>
+      {/* Caption overlay on hover — pure CSS via inline style won't work, so a permanent subtle overlay */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "linear-gradient(to top, rgba(26,15,7,0.75) 0%, transparent 50%)",
+          display: "flex",
+          alignItems: "flex-end",
+          padding: "0.75rem",
+          pointerEvents: "none",
+        }}
+      >
+        <p
+          style={{
+            fontFamily: "'Cormorant Galatia', serif",
+            fontSize: "0.75rem",
+            fontStyle: "italic",
+            color: P.sand,
+            margin: 0,
+            lineHeight: 1.3,
+            opacity: 0.85,
+          }}
+        >
+          {photo.caption}
+        </p>
+      </div>
+    </div>
+  )
+}
+
 // ─── Component ─────────────────────────────────────────────────────────────────
 export default function ScrapbookPage() {
   const progressBarRef = useRef(null)
+  const bannerRef = useRef(null)
   const heroRef = useRef(null)
   const heroBgRef = useRef(null)
   const heroTitleRef = useRef(null)
@@ -87,6 +187,14 @@ export default function ScrapbookPage() {
 
   // ─── GSAP setup ──────────────────────────────────────────────────────────────
   useEffect(() => {
+    // Inject banner keyframe CSS once
+    if (!document.getElementById("sb-banner-css")) {
+      const style = document.createElement("style")
+      style.id = "sb-banner-css"
+      style.textContent = BANNER_CSS
+      document.head.appendChild(style)
+    }
+
     // Google Fonts — Cormorant Galatia + DM Sans
     const fontLink = document.createElement("link")
     fontLink.rel = "stylesheet"
@@ -193,7 +301,27 @@ export default function ScrapbookPage() {
           )
         }
 
-        // ── 5. Photo cards ─────────────────────────────────────────────────
+        // ── 5. 3D banner entrance ──────────────────────────────────────────
+        if (bannerRef.current) {
+          gsap.fromTo(
+            bannerRef.current,
+            { rotateX: 35, opacity: 0, y: 80 },
+            {
+              rotateX: 0,
+              opacity: 1,
+              y: 0,
+              ease: "power3.out",
+              scrollTrigger: {
+                trigger: bannerRef.current,
+                start: "top 85%",
+                end: "top 35%",
+                scrub: 1.2,
+              },
+            }
+          )
+        }
+
+        // ── 6. Photo cards ─────────────────────────────────────────────────
         cardRefs.current.forEach((card, i) => {
           if (!card) return
 
@@ -477,6 +605,101 @@ export default function ScrapbookPage() {
             }}
           />
         </div>
+      </section>
+
+      {/* ╔══════════════════════════════════════════════════════╗
+          ║  3D PHOTO BANNER                                     ║
+          ╚══════════════════════════════════════════════════════╝ */}
+      <section
+        style={{
+          padding: "7rem 0",
+          background: P.dark,
+          overflow: "hidden",
+          position: "relative",
+        }}
+      >
+        {/* Section label */}
+        <p
+          style={{
+            fontFamily: "'DM Sans', sans-serif",
+            color: P.sand,
+            fontSize: "0.68rem",
+            letterSpacing: "0.5em",
+            textTransform: "uppercase",
+            textAlign: "center",
+            marginBottom: "3.5rem",
+            opacity: 0.4,
+          }}
+        >
+          The moments
+        </p>
+
+        {/* 3D perspective wrapper — GSAP rotateX entrance target */}
+        <div
+          ref={bannerRef}
+          style={{
+            perspective: "900px",
+            perspectiveOrigin: "50% 50%",
+            willChange: "transform, opacity",
+          }}
+        >
+          {/* Row 1 — scrolls left */}
+          <div style={{ overflow: "hidden", marginBottom: "16px" }}>
+            <div
+              className="sb-strip"
+              style={{
+                display: "flex",
+                gap: "16px",
+                /* 3× the items so one full set = 33.3% → seamless loop */
+                width: "300%",
+                transform: "rotateX(8deg)",
+                transformOrigin: "50% 0%",
+              }}
+            >
+              {[...PHOTOS, ...PHOTOS, ...PHOTOS].map((photo, i) => (
+                <BannerCard key={`a-${i}`} photo={photo} />
+              ))}
+            </div>
+          </div>
+
+          {/* Row 2 — scrolls right (reversed), slight counter-tilt */}
+          <div style={{ overflow: "hidden" }}>
+            <div
+              className="sb-strip-rev"
+              style={{
+                display: "flex",
+                gap: "16px",
+                width: "300%",
+                transform: "rotateX(-6deg)",
+                transformOrigin: "50% 100%",
+              }}
+            >
+              {[...[...PHOTOS].reverse(), ...[...PHOTOS].reverse(), ...[...PHOTOS].reverse()].map(
+                (photo, i) => (
+                  <BannerCard key={`b-${i}`} photo={photo} />
+                )
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Edge fade masks */}
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: `linear-gradient(
+              to right,
+              ${P.dark} 0%,
+              transparent 10%,
+              transparent 90%,
+              ${P.dark} 100%
+            )`,
+            pointerEvents: "none",
+            zIndex: 2,
+          }}
+        />
       </section>
 
       {/* ╔══════════════════════════════════════════════════════╗
