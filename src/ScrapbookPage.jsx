@@ -139,34 +139,61 @@ export default function ScrapbookPage() {
         if (vid && videoSectionRef.current) {
           vid.pause()
           vid.currentTime = 0
+          vid.preload = "auto"
 
-          ScrollTrigger.create({
-            trigger: videoSectionRef.current,
-            start: "top top",
-            end: "+=300%",
-            pin: true,
-            pinSpacing: true,
-            scrub: true,
-            onUpdate: (self) => {
-              if (vid.duration) vid.currentTime = self.progress * vid.duration
-            },
-          })
+          // Batch currentTime writes to one per animation frame to prevent
+          // the browser from queuing multiple seek operations at once
+          let pendingTime = null
+          let rafId = null
+          const seekTo = (t) => {
+            pendingTime = t
+            if (!rafId) {
+              rafId = requestAnimationFrame(() => {
+                rafId = null
+                if (pendingTime !== null && Math.abs(vid.currentTime - pendingTime) > 0.01) {
+                  vid.currentTime = pendingTime
+                }
+                pendingTime = null
+              })
+            }
+          }
 
-          // Progress bar grows with scroll
-          if (videoProgressLineRef.current) {
-            gsap.fromTo(videoProgressLineRef.current,
-              { scaleX: 0 },
-              {
-                scaleX: 1,
-                ease: "none",
-                scrollTrigger: {
-                  trigger: videoSectionRef.current,
-                  start: "top top",
-                  end: "+=300%",
-                  scrub: true,
-                },
-              }
-            )
+          const setupScrub = () => {
+            ScrollTrigger.create({
+              trigger: videoSectionRef.current,
+              start: "top top",
+              end: "+=300%",
+              pin: true,
+              pinSpacing: true,
+              scrub: 0.5,          // small lag smooths out keyframe jumps
+              onUpdate: (self) => {
+                if (vid.duration) seekTo(self.progress * vid.duration)
+              },
+            })
+
+            // Progress bar
+            if (videoProgressLineRef.current) {
+              gsap.fromTo(videoProgressLineRef.current,
+                { scaleX: 0 },
+                {
+                  scaleX: 1,
+                  ease: "none",
+                  scrollTrigger: {
+                    trigger: videoSectionRef.current,
+                    start: "top top",
+                    end: "+=300%",
+                    scrub: true,
+                  },
+                }
+              )
+            }
+          }
+
+          // Wait for metadata so vid.duration is accurate before we start
+          if (vid.readyState >= 1) {
+            setupScrub()
+          } else {
+            vid.addEventListener("loadedmetadata", setupScrub, { once: true })
           }
         }
 
