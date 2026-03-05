@@ -180,6 +180,11 @@ export default function ScrapbookPage() {
   const heroTitleRef = useRef(null)
   const heroSubRef = useRef(null)
 
+  // Video scrub refs
+  const videoSectionRef = useRef(null)
+  const videoRef = useRef(null)
+  const videoOverlayRef = useRef(null)
+
   // Per-card refs (arrays)
   const cardRefs = useRef([])
   const imgRefs = useRef([])
@@ -222,6 +227,42 @@ export default function ScrapbookPage() {
         if (!gsap || !ScrollTrigger) return
 
         gsap.registerPlugin(ScrollTrigger)
+
+        // ── 0. Video scrub — pin full-screen, drive currentTime via scroll ──
+        const vid = videoRef.current
+        if (vid && videoSectionRef.current) {
+          // Make sure the video is loaded enough to scrub
+          vid.pause()
+          vid.currentTime = 0
+
+          ScrollTrigger.create({
+            trigger: videoSectionRef.current,
+            start: "top top",
+            end: "+=300%",   // 3 viewport-heights of scroll = full video scrub
+            pin: true,
+            pinSpacing: true,
+            scrub: true,
+            onUpdate: (self) => {
+              if (vid.duration) {
+                vid.currentTime = self.progress * vid.duration
+              }
+            },
+          })
+
+          // Fade the text overlay out as the video starts scrubbing
+          if (videoOverlayRef.current) {
+            gsap.to(videoOverlayRef.current, {
+              opacity: 0,
+              ease: "power1.out",
+              scrollTrigger: {
+                trigger: videoSectionRef.current,
+                start: "top top",
+                end: "+=60%",
+                scrub: true,
+              },
+            })
+          }
+        }
 
         // ── 1. Scroll progress bar ──────────────────────────────────────────
         if (progressBarRef.current) {
@@ -437,6 +478,73 @@ export default function ScrapbookPage() {
           }}
         />
       </div>
+
+      {/* ╔══════════════════════════════════════════════════════╗
+          ║  VIDEO SCRUB — pin, scroll drives currentTime        ║
+          ╚══════════════════════════════════════════════════════╝ */}
+      <section
+        ref={videoSectionRef}
+        style={{
+          height: "100vh",
+          position: "relative",
+          overflow: "hidden",
+          background: "#000",
+        }}
+      >
+        <video
+          ref={videoRef}
+          src="./video/scene.mp4"
+          muted
+          playsInline
+          preload="auto"
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            display: "block",
+          }}
+        />
+
+        {/* Dark vignette + intro label */}
+        <div
+          ref={videoOverlayRef}
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "radial-gradient(ellipse 80% 70% at 50% 60%, transparent 30%, rgba(0,0,0,0.55) 100%)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            paddingBottom: "3.5rem",
+            pointerEvents: "none",
+          }}
+        >
+          <p
+            style={{
+              fontFamily: "'DM Sans', sans-serif",
+              color: "rgba(245,239,230,0.55)",
+              fontSize: "0.68rem",
+              letterSpacing: "0.55em",
+              textTransform: "uppercase",
+              margin: 0,
+            }}
+          >
+            Scroll to relive the moment
+          </p>
+          <div
+            style={{
+              marginTop: "1rem",
+              width: "1px",
+              height: "44px",
+              background: "linear-gradient(to bottom, rgba(245,239,230,0.4), transparent)",
+            }}
+          />
+        </div>
+      </section>
 
       {/* ╔══════════════════════════════════════════════════════╗
           ║  HERO — pinned, gradient shift, title blur-reveal    ║
