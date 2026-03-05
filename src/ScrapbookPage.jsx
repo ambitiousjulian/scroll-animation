@@ -184,6 +184,9 @@ export default function ScrapbookPage() {
   const videoSectionRef = useRef(null)
   const videoRef = useRef(null)
   const videoOverlayRef = useRef(null)
+  const videoWord1Ref = useRef(null)
+  const videoWord2Ref = useRef(null)
+  const videoProgressLineRef = useRef(null)
 
   // Per-card refs (arrays)
   const cardRefs = useRef([])
@@ -249,7 +252,7 @@ export default function ScrapbookPage() {
             },
           })
 
-          // Fade the text overlay out as the video starts scrubbing
+          // Fade the "scroll to relive" hint out immediately
           if (videoOverlayRef.current) {
             gsap.to(videoOverlayRef.current, {
               opacity: 0,
@@ -257,10 +260,70 @@ export default function ScrapbookPage() {
               scrollTrigger: {
                 trigger: videoSectionRef.current,
                 start: "top top",
-                end: "+=60%",
+                end: "+=30%",
                 scrub: true,
               },
             })
+          }
+
+          // Word 1 — twirls in from rotateY(90) then exits rotateY(-90)
+          if (videoWord1Ref.current) {
+            const tl1 = gsap.timeline({
+              scrollTrigger: {
+                trigger: videoSectionRef.current,
+                start: "top top",
+                end: "+=300%",
+                scrub: 1.2,
+              },
+            })
+            tl1
+              .fromTo(videoWord1Ref.current,
+                { rotateY: 90, opacity: 0, scale: 0.7, z: -300 },
+                { rotateY: 0, opacity: 1, scale: 1, z: 0, ease: "power3.out", duration: 0.3 }
+              )
+              .to(videoWord1Ref.current,
+                { rotateY: -90, opacity: 0, scale: 0.7, z: -300, ease: "power3.in", duration: 0.2 },
+                0.55
+              )
+          }
+
+          // Word 2 — twirls in from rotateY(-90) offset slightly later
+          if (videoWord2Ref.current) {
+            const tl2 = gsap.timeline({
+              scrollTrigger: {
+                trigger: videoSectionRef.current,
+                start: "top top",
+                end: "+=300%",
+                scrub: 1.2,
+              },
+            })
+            tl2
+              .fromTo(videoWord2Ref.current,
+                { rotateY: -90, opacity: 0, scale: 0.7, z: -300 },
+                { rotateY: 0, opacity: 1, scale: 1, z: 0, ease: "power3.out", duration: 0.3 },
+                0.12
+              )
+              .to(videoWord2Ref.current,
+                { rotateY: 90, opacity: 0, scale: 0.7, z: -300, ease: "power3.in", duration: 0.2 },
+                0.65
+              )
+          }
+
+          // Progress line — grows from 0 to 100% width as video scrubs
+          if (videoProgressLineRef.current) {
+            gsap.fromTo(videoProgressLineRef.current,
+              { scaleX: 0 },
+              {
+                scaleX: 1,
+                ease: "none",
+                scrollTrigger: {
+                  trigger: videoSectionRef.current,
+                  start: "top top",
+                  end: "+=300%",
+                  scrub: true,
+                },
+              }
+            )
           }
         }
 
@@ -507,20 +570,102 @@ export default function ScrapbookPage() {
           }}
         />
 
-        {/* Dark vignette + intro label */}
+        {/* 3D text stage — perspective container */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            perspective: "800px",
+            perspectiveOrigin: "50% 50%",
+            pointerEvents: "none",
+          }}
+        >
+          {/* Word 1 */}
+          <div
+            ref={videoWord1Ref}
+            style={{
+              fontFamily: "'Cormorant Galatia', serif",
+              fontSize: "clamp(4.5rem, 14vw, 13rem)",
+              fontWeight: 600,
+              lineHeight: 0.9,
+              color: "#000",
+              textTransform: "uppercase",
+              letterSpacing: "-0.04em",
+              willChange: "transform, opacity",
+              opacity: 0,
+              /* thick white outline so it pops on any video frame */
+              WebkitTextStroke: "2px rgba(255,255,255,0.9)",
+              textShadow: "0 0 60px rgba(255,255,255,0.25), 4px 4px 0px rgba(255,255,255,0.15)",
+              transformStyle: "preserve-3d",
+            }}
+          >
+            Our
+          </div>
+
+          {/* Word 2 */}
+          <div
+            ref={videoWord2Ref}
+            style={{
+              fontFamily: "'Cormorant Galatia', serif",
+              fontSize: "clamp(4.5rem, 14vw, 13rem)",
+              fontWeight: 600,
+              lineHeight: 0.9,
+              color: "#000",
+              textTransform: "uppercase",
+              letterSpacing: "-0.04em",
+              willChange: "transform, opacity",
+              opacity: 0,
+              WebkitTextStroke: "2px rgba(255,255,255,0.9)",
+              textShadow: "0 0 60px rgba(255,255,255,0.25), 4px 4px 0px rgba(255,255,255,0.15)",
+              transformStyle: "preserve-3d",
+            }}
+          >
+            Story
+          </div>
+        </div>
+
+        {/* Progress bar — bottom of video section */}
+        <div
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: "3px",
+            background: "rgba(255,255,255,0.12)",
+            pointerEvents: "none",
+          }}
+        >
+          <div
+            ref={videoProgressLineRef}
+            style={{
+              height: "100%",
+              background: "#fff",
+              transformOrigin: "left center",
+              transform: "scaleX(0)",
+              willChange: "transform",
+            }}
+          />
+        </div>
+
+        {/* Scroll hint — fades out on first scroll */}
         <div
           ref={videoOverlayRef}
           style={{
             position: "absolute",
-            inset: 0,
-            background:
-              "radial-gradient(ellipse 80% 70% at 50% 60%, transparent 30%, rgba(0,0,0,0.55) 100%)",
+            bottom: "3.5rem",
+            left: "50%",
+            transform: "translateX(-50%)",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            justifyContent: "flex-end",
-            paddingBottom: "3.5rem",
+            gap: "0.75rem",
             pointerEvents: "none",
+            willChange: "opacity",
           }}
         >
           <p
@@ -531,15 +676,15 @@ export default function ScrapbookPage() {
               letterSpacing: "0.55em",
               textTransform: "uppercase",
               margin: 0,
+              whiteSpace: "nowrap",
             }}
           >
             Scroll to relive the moment
           </p>
           <div
             style={{
-              marginTop: "1rem",
               width: "1px",
-              height: "44px",
+              height: "36px",
               background: "linear-gradient(to bottom, rgba(245,239,230,0.4), transparent)",
             }}
           />
