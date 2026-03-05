@@ -183,9 +183,7 @@ export default function ScrapbookPage() {
   // Video scrub refs
   const videoSectionRef = useRef(null)
   const videoRef = useRef(null)
-  const videoOverlayRef = useRef(null)
-  const videoWord1Ref = useRef(null)
-  const videoWord2Ref = useRef(null)
+  const videoTextRef = useRef(null)
   const videoProgressLineRef = useRef(null)
 
   // Per-card refs (arrays)
@@ -234,82 +232,42 @@ export default function ScrapbookPage() {
         // ── 0. Video scrub — pin full-screen, drive currentTime via scroll ──
         const vid = videoRef.current
         if (vid && videoSectionRef.current) {
-          // Make sure the video is loaded enough to scrub
           vid.pause()
           vid.currentTime = 0
 
           ScrollTrigger.create({
             trigger: videoSectionRef.current,
             start: "top top",
-            end: "+=300%",   // 3 viewport-heights of scroll = full video scrub
+            end: "+=300%",
             pin: true,
             pinSpacing: true,
             scrub: true,
             onUpdate: (self) => {
-              if (vid.duration) {
-                vid.currentTime = self.progress * vid.duration
-              }
+              if (vid.duration) vid.currentTime = self.progress * vid.duration
             },
           })
 
-          // Fade the "scroll to relive" hint out immediately
-          if (videoOverlayRef.current) {
-            gsap.to(videoOverlayRef.current, {
-              opacity: 0,
-              ease: "power1.out",
-              scrollTrigger: {
-                trigger: videoSectionRef.current,
-                start: "top top",
-                end: "+=30%",
-                scrub: true,
-              },
-            })
-          }
-
-          // Word 1 — twirls in from rotateY(90) then exits rotateY(-90)
-          if (videoWord1Ref.current) {
-            const tl1 = gsap.timeline({
+          // Title: fades in clean, holds, fades out near end
+          if (videoTextRef.current) {
+            gsap.timeline({
               scrollTrigger: {
                 trigger: videoSectionRef.current,
                 start: "top top",
                 end: "+=300%",
-                scrub: 1.2,
+                scrub: 1,
               },
             })
-            tl1
-              .fromTo(videoWord1Ref.current,
-                { rotateY: 90, opacity: 0, scale: 0.7, z: -300 },
-                { rotateY: 0, opacity: 1, scale: 1, z: 0, ease: "power3.out", duration: 0.3 }
+              .fromTo(videoTextRef.current,
+                { opacity: 0, y: 18 },
+                { opacity: 1, y: 0, ease: "power2.out", duration: 0.25 }
               )
-              .to(videoWord1Ref.current,
-                { rotateY: -90, opacity: 0, scale: 0.7, z: -300, ease: "power3.in", duration: 0.2 },
-                0.55
+              .to(videoTextRef.current,
+                { opacity: 0, y: -18, ease: "power2.in", duration: 0.2 },
+                0.7
               )
           }
 
-          // Word 2 — twirls in from rotateY(-90) offset slightly later
-          if (videoWord2Ref.current) {
-            const tl2 = gsap.timeline({
-              scrollTrigger: {
-                trigger: videoSectionRef.current,
-                start: "top top",
-                end: "+=300%",
-                scrub: 1.2,
-              },
-            })
-            tl2
-              .fromTo(videoWord2Ref.current,
-                { rotateY: -90, opacity: 0, scale: 0.7, z: -300 },
-                { rotateY: 0, opacity: 1, scale: 1, z: 0, ease: "power3.out", duration: 0.3 },
-                0.12
-              )
-              .to(videoWord2Ref.current,
-                { rotateY: 90, opacity: 0, scale: 0.7, z: -300, ease: "power3.in", duration: 0.2 },
-                0.65
-              )
-          }
-
-          // Progress line — grows from 0 to 100% width as video scrubs
+          // Progress line tracks scroll through video
           if (videoProgressLineRef.current) {
             gsap.fromTo(videoProgressLineRef.current,
               { scaleX: 0 },
@@ -570,73 +528,46 @@ export default function ScrapbookPage() {
           }}
         />
 
-        {/* 3D text stage — perspective container */}
+        {/* OUR STORY — centered, clean */}
         <div
+          ref={videoTextRef}
           style={{
             position: "absolute",
             inset: 0,
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            perspective: "800px",
-            perspectiveOrigin: "50% 50%",
             pointerEvents: "none",
+            opacity: 0,
+            willChange: "transform, opacity",
           }}
         >
-          {/* Word 1 */}
-          <div
-            ref={videoWord1Ref}
+          <h1
             style={{
               fontFamily: "'Cormorant Galatia', serif",
-              fontSize: "clamp(4.5rem, 14vw, 13rem)",
-              fontWeight: 600,
-              lineHeight: 0.9,
-              color: "#000",
+              fontSize: "clamp(5rem, 15vw, 14rem)",
+              fontWeight: 300,
+              color: "#fff",
               textTransform: "uppercase",
-              letterSpacing: "-0.04em",
-              willChange: "transform, opacity",
-              opacity: 0,
-              /* thick white outline so it pops on any video frame */
-              WebkitTextStroke: "2px rgba(255,255,255,0.9)",
-              textShadow: "0 0 60px rgba(255,255,255,0.25), 4px 4px 0px rgba(255,255,255,0.15)",
-              transformStyle: "preserve-3d",
+              letterSpacing: "0.12em",
+              margin: 0,
+              lineHeight: 1,
+              textShadow: "0 2px 40px rgba(0,0,0,0.5)",
             }}
           >
-            Our
-          </div>
-
-          {/* Word 2 */}
-          <div
-            ref={videoWord2Ref}
-            style={{
-              fontFamily: "'Cormorant Galatia', serif",
-              fontSize: "clamp(4.5rem, 14vw, 13rem)",
-              fontWeight: 600,
-              lineHeight: 0.9,
-              color: "#000",
-              textTransform: "uppercase",
-              letterSpacing: "-0.04em",
-              willChange: "transform, opacity",
-              opacity: 0,
-              WebkitTextStroke: "2px rgba(255,255,255,0.9)",
-              textShadow: "0 0 60px rgba(255,255,255,0.25), 4px 4px 0px rgba(255,255,255,0.15)",
-              transformStyle: "preserve-3d",
-            }}
-          >
-            Story
-          </div>
+            Our Story
+          </h1>
         </div>
 
-        {/* Progress bar — bottom of video section */}
+        {/* Progress line */}
         <div
           style={{
             position: "absolute",
             bottom: 0,
             left: 0,
             right: 0,
-            height: "3px",
-            background: "rgba(255,255,255,0.12)",
+            height: "2px",
+            background: "rgba(255,255,255,0.15)",
             pointerEvents: "none",
           }}
         >
@@ -644,48 +575,10 @@ export default function ScrapbookPage() {
             ref={videoProgressLineRef}
             style={{
               height: "100%",
-              background: "#fff",
+              background: "rgba(255,255,255,0.85)",
               transformOrigin: "left center",
               transform: "scaleX(0)",
               willChange: "transform",
-            }}
-          />
-        </div>
-
-        {/* Scroll hint — fades out on first scroll */}
-        <div
-          ref={videoOverlayRef}
-          style={{
-            position: "absolute",
-            bottom: "3.5rem",
-            left: "50%",
-            transform: "translateX(-50%)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "0.75rem",
-            pointerEvents: "none",
-            willChange: "opacity",
-          }}
-        >
-          <p
-            style={{
-              fontFamily: "'DM Sans', sans-serif",
-              color: "rgba(245,239,230,0.55)",
-              fontSize: "0.68rem",
-              letterSpacing: "0.55em",
-              textTransform: "uppercase",
-              margin: 0,
-              whiteSpace: "nowrap",
-            }}
-          >
-            Scroll to relive the moment
-          </p>
-          <div
-            style={{
-              width: "1px",
-              height: "36px",
-              background: "linear-gradient(to bottom, rgba(245,239,230,0.4), transparent)",
             }}
           />
         </div>
